@@ -7400,6 +7400,8 @@ class LibvirtDriver(driver.ComputeDriver):
         if mdevs:
             self._guest_add_mdevs(guest, mdevs)
 
+        self._guest_add_commandline(guest, flavor, instance, image_meta)
+
         if sev_enabled:
             caps = self._host.get_capabilities()
             self._guest_configure_sev(guest, caps.host.cpu.arch,
@@ -7411,6 +7413,19 @@ class LibvirtDriver(driver.ComputeDriver):
         self._guest_add_iommu_device(guest, image_meta, flavor)
 
         return guest
+
+    def _guest_add_commandline(self, guest, flavor, instance, image_meta):
+        mmio_size = None
+        hw_firmware_type = image_meta.properties.get(
+            'hw_firmware_type')
+        if (hw_firmware_type == fields.FirmwareType.UEFI):
+            mmio_size = flavor.extra_specs.get('hw:ovmf_mmio_size_mb')
+            if mmio_size is not None:
+                mmio_size = int(mmio_size)
+
+        if mmio_size:
+            guest.commandline = vconfig.LibvirtConfigGuestQemuCommandLine(
+                mmio_size=mmio_size)
 
     def _get_ordered_vpmems(self, instance, flavor):
         resources = self._get_resources(instance)

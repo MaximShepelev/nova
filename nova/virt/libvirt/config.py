@@ -120,6 +120,27 @@ class LibvirtConfigObject(object):
         return self.to_xml(pretty_print=False)
 
 
+class LibvirtConfigGuestQemuCommandLine(LibvirtConfigObject):
+
+    def __init__(self, mmio_size=None):
+        super(LibvirtConfigGuestQemuCommandLine, self).__init__(
+            root_name='commandline',
+            ns_uri="http://libvirt.org/schemas/domain/qemu/1.0")
+        self.mmio_size = mmio_size
+
+    def format_dom(self):
+        args = super(LibvirtConfigGuestQemuCommandLine, self).format_dom()
+        qemu_values = []
+        if self.mmio_size:
+            qemu_values.extend([
+                '-fw_cfg',
+                'opt/ovmf/X-PciMmio64Mb,string={}'.format(self.mmio_size)
+            ])
+        for value in qemu_values:
+            args.append(self._new_node("arg", value=value))
+        return args
+
+
 class LibvirtConfigCaps(LibvirtConfigObject):
 
     def __init__(self, **kwargs):
@@ -3005,6 +3026,7 @@ class LibvirtConfigGuest(LibvirtConfigObject):
 
         self.virt_type = None
         self.uuid = None
+        self.commandline = None
         self.name = None
         self.memory = 500 * units.Mi
         self.max_memory_size = None
@@ -3185,6 +3207,9 @@ class LibvirtConfigGuest(LibvirtConfigObject):
 
         if self.clock is not None:
             root.append(self.clock.format_dom())
+
+        if self.commandline is not None:
+            root.append(self.commandline.format_dom())
 
         if self.cpu is not None:
             root.append(self.cpu.format_dom())
