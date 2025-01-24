@@ -2690,6 +2690,8 @@ class LibvirtConfigGuestTest(LibvirtConfigBaseTest):
         obj = config.LibvirtConfigGuestSEVLaunchSecurity()
         obj.cbitpos = 47
         obj.reduced_phys_bits = 1
+        obj.commandline = config.LibvirtConfigGuestQemuCommandLine(
+            mmio_size=65536)
 
         xml = obj.to_xml()
         launch_security_expected = """
@@ -2700,6 +2702,16 @@ class LibvirtConfigGuestTest(LibvirtConfigBaseTest):
             </launchSecurity>"""
 
         self.assertXmlEqual(launch_security_expected, xml)
+
+    def test_config_mmio_size(self):
+        expected_xml = """
+        <commandline xmlns="http://libvirt.org/schemas/domain/qemu/1.0">
+          <arg value='-fw_cfg'/>
+          <arg value='opt/ovmf/X-PciMmio64Mb,string=65536'/>
+        </commandline>"""
+        obj = config.LibvirtConfigGuestQemuCommandLine(mmio_size=65536)
+        xml = obj.to_xml()
+        self.assertXmlEqual(xml, expected_xml)
 
     def test_config_lxc(self):
         obj = config.LibvirtConfigGuest()

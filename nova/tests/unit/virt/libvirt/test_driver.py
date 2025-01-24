@@ -2835,6 +2835,100 @@ class LibvirtConnTestCase(test.NoDBTestCase,
         # i440fx is not pcie machine so there should be no pcie ports
         self.assertEqual(0, num_ports)
 
+    @ddt.unpack
+    @ddt.data(
+        {
+            'config': {},
+            'os_type': 'linux',
+            'hw_firmware_type': 'uefi',
+            'alias': 'a2:1',
+            'mmio_size': None,
+        },
+        {
+            'config': {},
+            'os_type': 'windows',
+            'hw_firmware_type': 'bios',
+            'alias': 'a2:1',
+            'mmio_size': None,
+        },
+        {
+            'config': {},
+            'os_type': 'windows',
+            'hw_firmware_type': 'bios',
+            'alias': 'a2:3',
+            'mmio_size': 131072,
+        },
+        {
+            'config': {},
+            'os_type': 'windows',
+            'hw_firmware_type': 'uefi',
+            'alias': 'a2:1',
+            'mmio_size': 65536,
+        },
+        {
+            'config': {},
+            'os_type': 'linux',
+            'hw_firmware_type': 'uefi',
+            'alias': 'a2:1',
+            'mmio_size': 131072,
+        },
+    )
+    def test_get_guest_mmio_size(
+            self, config, os_type, hw_firmware_type, alias, mmio_size):
+
+        for config_opt, config_val in config.items():
+            self.flags(**{config_opt: config_val}, group='libvirt')
+
+        drvr = libvirt_driver.LibvirtDriver(fake.FakeVirtAPI(), True)
+        ctxt = context.RequestContext(project_id=123,
+                                      project_name="aubergine",
+                                      user_id=456,
+                                      user_name="pie")
+
+        if mmio_size is None:
+            flavor = objects.Flavor(name='m1.small',
+                                    memory_mb=6,
+                                    vcpus=28,
+                                    root_gb=496,
+                                    ephemeral_gb=8128,
+                                    swap=33550336,
+                                    extra_specs={
+                                        "pci_passthrough:alias": alias
+                                    })
+        else:
+            flavor = objects.Flavor(name='m1.small',
+                                    memory_mb=6,
+                                    vcpus=28,
+                                    root_gb=496,
+                                    ephemeral_gb=8128,
+                                    swap=33550336,
+                                    extra_specs={
+                                        "pci_passthrough:alias": alias,
+                                        "hw:ovmf_mmio_size_mb": mmio_size})
+        instance_ref = objects.Instance(**self.test_instance)
+        instance_ref['os_type'] = os_type
+        instance_ref.flavor = flavor
+        image_meta = objects.ImageMeta.from_dict({
+            "disk_format": "raw",
+            "properties": {"hw_firmware_type": hw_firmware_type},
+        })
+
+        disk_info = blockinfo.get_disk_info(CONF.libvirt.virt_type,
+                                            instance_ref,
+                                            image_meta)
+
+        cfg = drvr._get_guest_config(instance_ref,
+                                     _fake_network_info(self, 1),
+                                     image_meta, disk_info,
+                                     context=ctxt)
+
+        if mmio_size is None or hw_firmware_type == 'bios':
+            expected_str = 'opt/ovmf/X-PciMmio64Mb,string='
+            self.assertNotIn(expected_str, str(cfg))
+        else:
+            expected_str = f'opt/ovmf/X-PciMmio64Mb,string={mmio_size}'
+            self.assertIn(expected_str, str(cfg))
+
     @mock.patch.object(time, "time")
     def test_get_guest_config_no_pcie_ports(self, time_mock):
         """Generate a "standard" guest with minimal configuration.
