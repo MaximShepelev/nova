@@ -7521,8 +7521,7 @@ class LibvirtDriver(driver.ComputeDriver):
             'hw_firmware_type')
         if (hw_firmware_type == fields.FirmwareType.UEFI):
             # and CONF.libvirt.gpu_mmio_size_enabled and instance.os_type == "windows" and):
-            mmio_size = flavor.extra_specs.get(
-            'hw:ovmf_mmio_size_mb')
+            mmio_size = flavor.extra_specs.get('hw:ovmf_mmio_size_mb')
             if mmio_size is not None:
                 mmio_size = int(mmio_size)
 
