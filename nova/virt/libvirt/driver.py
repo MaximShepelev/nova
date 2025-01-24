@@ -7529,6 +7529,7 @@ class LibvirtDriver(driver.ComputeDriver):
             guest.commandline = vconfig.LibvirtConfigGuestQemuCommandLine(
                 mmio_size=mmio_size)
 
+
     def _get_ordered_vpmems(self, instance, flavor):
         resources = self._get_resources(instance)
         ordered_vpmem_resources = self._get_ordered_vpmem_resources(

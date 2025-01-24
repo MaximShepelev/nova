@@ -3077,6 +3077,7 @@ class LibvirtConfigGuest(LibvirtConfigObject):
 
         self.virt_type = None
         self.uuid = None
+        self.commandline = None
         self.name = None
         self.memory = 500 * units.Mi
         self.max_memory_size = None
@@ -3262,6 +3263,9 @@ class LibvirtConfigGuest(LibvirtConfigObject):
 
         if self.clock is not None:
             root.append(self.clock.format_dom())
+
+        if self.commandline is not None:
+            root.append(self.commandline.format_dom())
 
         if self.cpu is not None:
             root.append(self.cpu.format_dom())
